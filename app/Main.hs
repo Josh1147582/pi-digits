@@ -30,10 +30,10 @@ hexPi n =
 sumPi :: Integer -> Integer -> Double
 sumPi n x =
   let
-    summation1 = [(fromIntegral ((16^(n-k) `mod` ((8*k)+x)))) / (fromIntegral ((8*k)+x)) | k <- [0..n]]
-    summation2 = [16^^(n-k) / (fromIntegral ((8*k)+x)) | k <- [(n+1)..5000]]
+    summation1 = sum [(fromIntegral ((16^(n-k) `mod` ((8*k)+x)))) / (fromIntegral ((8*k)+x)) | k <- [0..n]]
+    summation2 = sum [16^^(n-k) / (fromIntegral ((8*k)+x)) | k <- [(n+1)..5000]]
   in
-    sum $ summation1 ++ summation2
+    summation1 + summation2
 
 
 -- Get a range of digits.
