@@ -6,13 +6,20 @@ import Text.Read (readMaybe)
 import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
 import System.Exit (exitWith, ExitCode(ExitSuccess))
-
+import Control.Parallel
 
 -- Get the hex representation of Pi at place n.
 hexPi :: Integer -> Integer
 hexPi n =
   let
-    summation = (4 * sumPi n 1) - (2 * sumPi n 4) - (sumPi n 5) - (sumPi n 6)
+    summation = let
+      sone = (4 * sumPi n 1)
+      sfour = (2 * sumPi n 4)
+      sfive = (sumPi n 5)
+      ssix = (sumPi n 6)
+      in
+      sone `par` sfour `par` sfive `par` ssix `par` sone - sfour - sfive - ssix
+    
     skimmedSum = summation - (fromIntegral (floor summation :: Integer)) -- Take only the decimal portion
   in
     floor (16 * skimmedSum) :: Integer

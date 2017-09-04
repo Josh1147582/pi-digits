@@ -26,6 +26,7 @@ executable pi-digits-exe
   build-depends:       base
                      , pi-digits
                      , split
+                     , parallel
   default-language:    Haskell2010
 
 test-suite pi-digits-test
