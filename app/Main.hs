@@ -1,5 +1,5 @@
 module Main where
-import Numeric (showIntAtBase)
+import Numeric (showHex, showIntAtBase)
 import Data.List (isInfixOf, genericIndex)
 import Data.List.Split(splitOn)
 import Text.Read (readMaybe)
@@ -91,7 +91,7 @@ main = do
             exitWith ExitSuccess
           _ -> do
             putStrLn "Outputting in hex."
-            return (\n -> showIntAtBase 16 (\x -> show x !! 0) n "")
+            return (\n -> showHex n "")
     in do
       printFun <- printFunIO
       putStrLn "Enter a digit or range (Ctrl-C to exit)."
