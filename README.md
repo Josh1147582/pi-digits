@@ -14,7 +14,7 @@ Run `stack exec pi-digits-exe`, or execute the binary found in `./.stack-work/in
 
 ## TODO
 
-- Add a function for converting results to decimal.
-- Implement a faster mod operation, to allow for larger numbers (like 12345678901234567890). It will likely be implemented with the algorithm explained in the paper.
-- Replace the mess in `prompt` with a monad.
-- Implement threading?
+- [X] Add a function for converting results to decimal (and binary).
+- [ ] Implement a faster mod operation, to allow for larger numbers (like 12345678901234567890). It will likely be implemented with the algorithm explained in the paper.
+- [ ] Replace the mess in `prompt` with a monad.
+- [ ] Implement threading?
