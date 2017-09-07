@@ -43,6 +43,7 @@ rangePi printFun (Just low) (Just high) =
     "Error: Please give a proper range."
   else
     foldr (++) [] (map printFun (drop (fromIntegral low) . take (fromIntegral high) $ hexDigits))
+    -- foldl (.) id (map (showString . printFun) (drop (fromIntegral low) . take (fromIntegral high) $ hexDigits)) ""  -- Alternative implementation: not sure about speed
 
 rangePi _ _ _  = printErr
 
