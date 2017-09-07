@@ -16,6 +16,9 @@ Run `stack exec pi-digits-exe`, or execute the binary found in `./.stack-work/in
 
 - [X] Add a function for converting results to decimal (and binary).
 - [X] Implement threading.
-- [ ] Implement `optparse-applicative` for more formal/extensive arg parsing.
+- [X] Implement `optparse-applicative` for more formal/extensive arg parsing.
+- [X] ~~Replace the mess in `prompt` with a monad.~~ Issue corrected by using `optparse-applicative`.
 - [ ] Implement a faster mod operation, to allow for larger numbers (like 12345678901234567890). It will likely be implemented with the algorithm explained in the paper.
-- [ ] Replace the mess in `prompt` with a monad.
+- [ ] Customize print behavior and frequency. Flush output every N digits, or something similar.
+- [ ] Find a better way to transfer "globals", like `delim` and `printFun`.
+- [ ] Separate into different files. Possibly parsing and logic files.

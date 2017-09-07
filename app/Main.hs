@@ -4,11 +4,12 @@ import Data.List (isInfixOf, genericIndex)
 import Data.List.Split(splitOn)
 import Text.Read (readMaybe)
 import System.IO (hFlush, stdout)
-import System.Environment (getArgs)
-import System.Exit (exitWith, ExitCode(ExitSuccess))
 import Control.Parallel
 
--- Get the hex representation of Pi at place n.
+import Options.Applicative
+import Data.Semigroup ((<>))
+
+-- Get the hex digit of Pi at place n.
 hexPi :: Integer -> Integer
 hexPi n =
   let
@@ -19,7 +20,7 @@ hexPi n =
       ssix = (sumPi n 6)
       in
       sone `par` sfour `par` sfive `par` ssix `par` sone - sfour - sfive - ssix
-    
+
     skimmedSum = summation - (fromIntegral (floor summation :: Integer)) -- Take only the decimal portion
   in
     floor (16 * skimmedSum) :: Integer
@@ -37,35 +38,47 @@ sumPi n x =
 
 
 -- Get a range of digits.
-rangePi :: (Integer -> String) -> Maybe Integer -> Maybe Integer -> String
-rangePi printFun (Just low) (Just high) =
+rangePi :: (Integer -> String) -> String -> Maybe Integer -> Maybe Integer -> String
+rangePi printFun delim (Just low) (Just high) =
   if low >= high then
     "Error: Please give a proper range."
   else
-    foldr (++) [] (map printFun (drop (fromIntegral low) . take (fromIntegral high) $ hexDigits))
+    init $ foldr (++) [] $ separate (map printFun (drop (fromIntegral low) . take (fromIntegral high) $ hexDigits)) delim
     -- foldl (.) id (map (showString . printFun) (drop (fromIntegral low) . take (fromIntegral high) $ hexDigits)) ""  -- Alternative implementation: not sure about speed
 
-rangePi _ _ _  = printErr
+rangePi _ _ _ _ = printErr
 
 
-prompt :: (Integer -> String) -> IO ()
-prompt printFun = do
-  putStr ":: "
-  hFlush stdout
-  response <- getLine
-  -- Check if response is range, or single digit.
+-- Separate a list with some delimiter.
+separate :: [a] -> a -> [a]
+separate (x:xs) delim = x : delim : separate xs delim
+separate [] _ = []
+
+
+-- Check if response is valid, then call the appropriate function.
+parseIndex :: (Integer -> String) -> String -> String -> String
+parseIndex printFun delim response =
   if (isInfixOf ".." response) then
     let
       range = splitOn ".." response
       low = readMaybe $ range !! 0 :: Maybe Integer
       high = readMaybe $ range !! 1 :: Maybe Integer
     in
-      putStrLn $ rangePi printFun low high
+      rangePi printFun delim low high
     else do
       case (readMaybe response :: Maybe Integer) of
-        Nothing -> putStrLn printErr
-        Just x -> putStrLn $ printFun $ hexDigits `genericIndex` x
-  prompt printFun
+        Nothing -> printErr
+        Just x -> printFun $ hexDigits `genericIndex` x
+
+
+-- Continuously prompt for input.
+prompt :: (Integer -> String) -> String -> IO ()
+prompt printFun delim = do
+  putStr ">> "
+  hFlush stdout
+  response <- getLine
+  putStrLn $ parseIndex printFun delim response
+  prompt printFun delim
 
 
 -- The list of answers.
@@ -79,28 +92,68 @@ printErr = "Error: Please give an Integer (ex: 3) or a range (ex: 3..5)."
 
 
 main :: IO ()
-main = do
-  -- Get formatter function (hex, binary, or decimal)
-  args <- getArgs
+main = argHandle =<< execParser opts
+  where
+    opts = info (arguments <**> helper)
+      ( fullDesc
+     <> progDesc "Generate hexadecimal Pi digits.")
+
+
+-- Arguments to parse.
+data Arguments = Arguments
+  { eval  :: Maybe String
+  , print :: Maybe PrintFunc
+  , delimiter :: String}
+
+arguments :: Parser Arguments
+arguments = Arguments
+      <$> optional ( argument str (
+                       help "Evaluate an index/range, and exit."
+                       <> (metavar "eval")))
+      <*> printFunc
+      <*> strOption ( long "delimiter"
+                        <> metavar "delim"
+                        <> value ""
+                        <> help "Delimiter to separate printed values.")
+
+
+
+-- Decide which printing function to use.
+data PrintFunc = DecPrint | BinPrint
+
+printFunc :: Parser (Maybe PrintFunc)
+printFunc = optional (decPrint <|> binPrint)
+
+decPrint :: Parser PrintFunc
+decPrint = flag' DecPrint ( long "decimal"
+                            <> short 'd'
+                            <> help "Output in decimal.")
+
+binPrint :: Parser PrintFunc
+binPrint = flag' BinPrint ( long "binary"
+                            <> short 'b'
+                            <> help "Output in binary.")
+
+
+-- Handle args, either prompt or eval & quit.
+argHandle :: Arguments -> IO ()
+argHandle (Arguments toEval outputType delim) = do
   let
     printFunIO =
-      case args of
-          ["-b"] -> do
-            putStrLn "Outputting in binary."
-            return (\n -> showIntAtBase 2 (\x -> show x !! 0) n "")
-          ["-d"] -> do
-            putStrLn "Outputting in decimal."
-            return (\n -> show n ++ " ")
-          ["-h"] -> do
-            putStrLn "Generate hexadecimal Pi digits. Output in hexidemical by default.\n\
-                     \\t-b\tOutput in binary.\n\
-                     \\t-d\tOutput in decimal.\n\
-                     \\t-h\tShow this help message."
-            exitWith ExitSuccess
-          _ -> do
-            putStrLn "Outputting in hex."
-            return (\n -> showHex n "")
+      case outputType of
+        Just DecPrint -> do
+          putStrLn "Outputting in decimal."
+          return (\n -> show n ++ "")
+        Just BinPrint -> do
+          putStrLn "Outputting in binary."
+          return (\n -> showIntAtBase 2 (\x -> show x !! 0) n "")
+        _ -> do
+          putStrLn "Outputting in hex."
+          return (\n -> showHex n "")
     in do
-      printFun <- printFunIO
-      putStrLn "Enter a digit or range (Ctrl-C to exit)."
-      prompt printFun
+    printFun <- printFunIO
+    case toEval of
+      (Just s) -> putStrLn $ parseIndex printFun delim s
+      _ -> do
+        putStrLn "Enter a digit or range (Ctrl-C to exit)."
+        prompt printFun delim
