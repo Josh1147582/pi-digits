@@ -15,6 +15,7 @@ Run `stack exec pi-digits-exe`, or execute the binary found in `./.stack-work/in
 ## TODO
 
 - [X] Add a function for converting results to decimal (and binary).
+- [X] Implement threading.
+- [ ] Implement `optparse-applicative` for more formal/extensive arg parsing.
 - [ ] Implement a faster mod operation, to allow for larger numbers (like 12345678901234567890). It will likely be implemented with the algorithm explained in the paper.
 - [ ] Replace the mess in `prompt` with a monad.
-- [ ] Implement threading?
