@@ -2,7 +2,7 @@
 module Parsing (argHandle, arguments) where
 
 import Numeric (showHex, showIntAtBase)
-import Data.List (isInfixOf, intersperse, genericTake, genericDrop)
+import Data.List (isInfixOf, intercalate, genericTake, genericDrop)
 import Data.List.Split (splitOn)
 import Text.Read (readMaybe)
 import System.IO (hFlush, stdout)
@@ -43,9 +43,8 @@ parseIndex printFun delim response =
           Nothing -> []
   in
     case digits of
-      _:_ -> foldr (++) [] $ intersperse delim (map printFun digits)
-      -- _:_ -> foldl (.) id (map showString (intersperse delim (map printFun digits))) "" -- Alternative implementation: not sure about speed
       [] -> printErr
+      _ -> intercalate delim (map printFun digits)
 
 
 -- Pull digits in a range.
@@ -106,7 +105,7 @@ argHandle (Arguments toEval outputType delim) = do
       case outputType of
         Just DecPrint -> do
           putStrLn "Outputting in decimal."
-          return (\n -> show n ++ "")
+          return (\n -> show n)
         Just BinPrint -> do
           putStrLn "Outputting in binary."
           return (\n -> showIntAtBase 2 (\x -> show x !! 0) n "")

@@ -2,6 +2,8 @@
 module Logic (hexDigits) where
 
 import Control.Parallel (par)
+import Data.Char (intToDigit)
+import Numeric (showIntAtBase)
 
 
 -- Get the hex digit of Pi at place n.
@@ -9,12 +11,12 @@ hexPi :: Integer -> Integer
 hexPi n =
   let
     summation = let
-      sone = (4 * sumPi n 1)
-      sfour = (2 * sumPi n 4)
-      sfive = (sumPi n 5)
-      ssix = (sumPi n 6)
+      sOne = (4 * sumPi n 1)
+      sFour = (2 * sumPi n 4)
+      sFive = (sumPi n 5)
+      sSix = (sumPi n 6)
       in
-      sone `par` sfour `par` sfive `par` ssix `par` sone - sfour - sfive - ssix
+      sOne `par` sFour `par` sFive `par` sSix `par` sOne - sFour - sFive - sSix
 
     skimmedSum = summation - (fromIntegral (floor summation :: Integer)) -- Take only the decimal portion
   in
@@ -26,7 +28,7 @@ hexPi n =
 sumPi :: Integer -> Integer -> Double
 sumPi n x =
   let
-    summation1 = sum [(fromIntegral (fastMod 16 (n-k) ((8*k)+x))) / (fromIntegral ((8*k)+x)) | k <- [0..n]]
+    summation1 = sum [(fromIntegral (fastModExp 16 (n-k) ((8*k)+x))) / (fromIntegral ((8*k)+x)) | k <- [0..n]]
     summation2 = sum [16^^(n-k) / (fromIntegral ((8*k)+x)) | k <- [(n+1)..5000]]
   in
     summation1 + summation2
@@ -37,34 +39,17 @@ hexDigits :: [Integer]
 hexDigits = [hexPi x | x <- [0..]]
 
 
-fastMod :: Integer -> Integer -> Integer -> Integer
-fastMod b n k =
+-- Calculate a^b mod c.
+fastModExp :: Integer -> Integer -> Integer -> Integer
+fastModExp a b c =
   let
-    t = largestT 0 n
+    -- Represent b as a binary string, and reverse it.
+    -- This lets index n indicate 2^n.
+    revBinaryB = reverse (showIntAtBase 2 intToDigit b "")
+
+    powersOfA = [a^(2^n) `mod` c | n <- [0..]]
+
+    -- Take only binary powers of a that comprise b.
+    bPowersOfA = map (\(_, n) -> n) $ filter (\(char, _) -> char == '1') $ zip revBinaryB powersOfA
   in
-    a b (fromIntegral n) k 1 t
-
--- Get the largest t such that t^2 <= n
-largestT :: Integer -> Integer -> Double
-largestT t n
-  | (2 ^ (t + 1)) <= n = largestT (t + 1) n
-  | otherwise = 2^^t
-
-a :: Integer -> Double -> Integer -> Integer -> Double -> Integer
-a b n k r t =
-  if n >= t then
-    let
-      r' = (b * r) `mod` k
-      n' = n - t
-      t' = t / 2
-    in
-      if t' >= 1 then
-          a b n' k ((r' ^ 2) `mod` k) t'
-      else
-        r'
-  else
-    let t' = t / 2 in
-      if t' >= 1 then
-          a b n k ((r ^ 2) `mod` k) t'
-      else
-        r
+    foldr (\m n -> (m * n) `mod` c) 1 bPowersOfA

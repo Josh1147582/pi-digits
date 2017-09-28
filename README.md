@@ -20,5 +20,5 @@ Run `stack exec pi-digits-exe`, or execute the binary found in `./.stack-work/in
 - [X] ~~Replace the mess in `prompt` with a monad.~~ Issue corrected by using `optparse-applicative`.
 - [X] Separate into different files. Possibly parsing and logic files.
 - [X] ~~Find a better way to transfer "globals", like `delim` and `printFun`.~~ `parseIndex` handles all parsing and calling logic now.
-- [X] Implement a faster mod operation, to allow for larger numbers (like 12345678901234567890). It will likely be implemented with the algorithm explained in the paper.
+- [X] Implement a faster mod operation, to allow for larger numbers (like 12345678901234567890). ~~It will likely be implemented with the algorithm explained in the paper.~~ Implemented it in a [slightly faster, less iterative way](https://www.khanacademy.org/computing/computer-science/cryptography/modarithmetic/a/fast-modular-exponentiation).
 - [ ] Customize print behavior and frequency. Flush output every N digits, or something similar.
