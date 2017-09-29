@@ -1,37 +1,35 @@
 -- Calculate and store values of Pi.
 module Logic (hexDigits) where
 
-import Control.Parallel (par)
-import Data.Char (intToDigit)
-import Numeric (showIntAtBase)
+import Data.Bits (testBit, shiftR)
+import Control.Parallel.Strategies
 
 
 -- Get the hex digit of Pi at place n.
 hexPi :: Integer -> Integer
 hexPi n =
   let
-    summation = let
-      sOne = (4 * sumPi n 1)
-      sFour = (2 * sumPi n 4)
-      sFive = (sumPi n 5)
-      sSix = (sumPi n 6)
-      in
-      sOne `par` sFour `par` sFive `par` sSix `par` sOne - sFour - sFive - sSix
-
-    skimmedSum = summation - (fromIntegral (floor summation :: Integer)) -- Take only the decimal portion
+    summation = (4 * sumPi n 1) - (2 * sumPi n 4) - (sumPi n 5) - (sumPi n 6)
   in
-    floor (16 * skimmedSum) :: Integer
+    floor (16 * skim summation) :: Integer
 
 
 -- Calculate the summation.
--- 5000 is used in place of Infinity. This value drops off quickly, so no need to go too far.
+-- n+5000 is used in place of Infinity. This value drops off quickly, so no need to go too far.
 sumPi :: Integer -> Integer -> Double
 sumPi n x =
   let
-    summation1 = sum [(fromIntegral (fastModExp 16 (n-k) ((8*k)+x))) / (fromIntegral ((8*k)+x)) | k <- [0..n]]
-    summation2 = sum [16^^(n-k) / (fromIntegral ((8*k)+x)) | k <- [(n+1)..5000]]
+    summation1 = sum ([skim $ (fromIntegral (modExp 16 (n-k) ((8*k)+x))) / (fromIntegral ((8*k)+x)) | k <- [0..n]] `using` parList rseq)
+    summation2 = sum ([skim $ (16^^(n-k)) / (fromIntegral ((8*k)+x)) | k <- [(n+1)..(n+5000)]] `using` parList rseq)
   in
     summation1 + summation2
+
+
+-- Take only the decimal portion of a number.
+skim :: Double -> Double
+skim n
+  | n == (read "Infinity" :: Double) = 0  -- Without this check, skim returns NaN
+  | otherwise = n - fromIntegral (floor n :: Integer)
 
 
 -- The list of answers.
@@ -39,17 +37,10 @@ hexDigits :: [Integer]
 hexDigits = [hexPi x | x <- [0..]]
 
 
--- Calculate a^b mod c.
-fastModExp :: Integer -> Integer -> Integer -> Integer
-fastModExp a b c =
+modExp :: Integer -> Integer -> Integer -> Integer
+modExp _ 0 _ = 1
+modExp a b c =
   let
-    -- Represent b as a binary string, and reverse it.
-    -- This lets index n indicate 2^n.
-    revBinaryB = reverse (showIntAtBase 2 intToDigit b "")
-
-    powersOfA = [a^(2^n) `mod` c | n <- [0..]]
-
-    -- Take only binary powers of a that comprise b.
-    bPowersOfA = map (\(_, n) -> n) $ filter (\(char, _) -> char == '1') $ zip revBinaryB powersOfA
+    n = if testBit b 0 then a `mod` c else 1
   in
-    foldr (\m n -> (m * n) `mod` c) 1 bPowersOfA
+    n * modExp ((a^2) `mod` c) (shiftR b 1) c `mod` c
