@@ -5,7 +5,7 @@ import Numeric (showHex, showIntAtBase)
 import Data.List (isInfixOf, intercalate, genericTake, genericDrop)
 import Data.List.Split (splitOn)
 import Text.Read (readMaybe)
-import System.IO (hFlush, stdout)
+import System.IO (stdout, hFlush, hSetBuffering, BufferMode(NoBuffering))
 
 import Logic (hexDigits)
 
@@ -17,7 +17,7 @@ import Data.Semigroup ((<>))
 prompt :: (Integer -> String) -> String -> IO ()
 prompt printFun delim = do
   putStr ">> "
-  hFlush stdout
+  hFlush stdout  -- In case buffering is enabled.
   response <- getLine
   putStrLn $ parseIndex printFun delim response
   prompt printFun delim
@@ -31,10 +31,10 @@ parseIndex printFun delim response =
       if (isInfixOf ".." response) then
         let
           range = splitOn ".." response
-          jlow = readMaybe $ range !! 0 :: Maybe Integer
-          jhigh = readMaybe $ range !! 1 :: Maybe Integer
+          jLow = readMaybe $ range !! 0 :: Maybe Integer
+          jHigh = readMaybe $ range !! 1 :: Maybe Integer
         in
-          case (jlow, jhigh) of
+          case (jLow, jHigh) of
             (Just low, Just high) -> getDigitsFrom low high
             _ -> []
       else
@@ -55,7 +55,6 @@ getDigitsFrom low high
   | otherwise = genericDrop low . genericTake high $ hexDigits
 
 
-
 -- Complain about argument type.
 printErr :: String
 printErr = "Error: Please give a positive Integer (ex: 3) or a valid range of positive Integers (ex: 3..5)."
@@ -65,7 +64,8 @@ printErr = "Error: Please give a positive Integer (ex: 3) or a valid range of po
 data Arguments = Arguments
   { eval  :: Maybe String
   , print :: Maybe PrintFunc
-  , delimiter :: String}
+  , delimiter :: String
+  , buffer :: Bool}
 
 arguments :: Parser Arguments
 arguments = Arguments
@@ -77,6 +77,8 @@ arguments = Arguments
                         <> metavar "delim"
                         <> value ""
                         <> help "Delimiter to separate printed values.")
+      <*> switch (long "buffer"
+               <> help "Don't print output as it's calculated.")
 
 
 
@@ -99,7 +101,7 @@ binPrint = flag' BinPrint ( long "binary"
 
 -- Handle args, either prompt or eval & quit.
 argHandle :: Arguments -> IO ()
-argHandle (Arguments toEval outputType delim) = do
+argHandle (Arguments toEval outputType delim buff) = do
   let
     printFunIO =
       case outputType of
@@ -114,6 +116,10 @@ argHandle (Arguments toEval outputType delim) = do
           return (\n -> showHex n "")
     in do
     printFun <- printFunIO
+    if buff then
+      return ()
+    else
+      hSetBuffering stdout NoBuffering
     case toEval of
       Just s -> putStrLn $ parseIndex printFun delim s
       _ -> do
